@@ -39,7 +39,7 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 	if err != nil {
 		return 0, false, fmt.Errorf("Failed to read initial response: %w", err)
 	}
-	if response.Header.Get("Connection") == "Close" {
+	if response.Close {
 		return 0, false, nil
 	}
 	if response.Body != nil {
