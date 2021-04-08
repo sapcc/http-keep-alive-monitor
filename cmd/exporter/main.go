@@ -19,11 +19,11 @@ import (
 func main() {
 	var kubecontext, metricsAddr, ingressClass string
 	var idleTimeout time.Duration
-	var skipDefaultClass bool
+	var skipNoClass bool
 	flag.StringVar(&kubecontext, "kubecontext", "", "context to use from kubeconfig (env: KUBECONTEXT, U8S_CONTEXT, default: current-context)")
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.DurationVar(&idleTimeout, "idle-timeout", 101*time.Second, "Global timeout used when probing services")
-	flag.BoolVar(&skipDefaultClass, "skip-defalt-class", false, "Ignore ingress resources without an explicit ingress class.")
+	flag.DurationVar(&idleTimeout, "idle-timeout", 61*time.Second, "Global timeout used when probing services")
+	flag.BoolVar(&skipNoClass, "skip-no-class", false, "Ignore ingress resources without an explicit ingress class")
 	flag.StringVar(&ingressClass, "ingress-class", "", "Restrict to ingress resources of given ingress class")
 
 	flag.Parse()
@@ -59,7 +59,7 @@ func main() {
 		For(&netv1beta1.Ingress{}). // Watch Ingress definitions
 		Complete(&controller.IngressReconciler{
 			KeepAliveTimeout: idleTimeout,
-			DefaultClass:     !skipDefaultClass,
+			DefaultClass:     !skipNoClass,
 			IngressClass:     ingressClass,
 		})
 	if err != nil {

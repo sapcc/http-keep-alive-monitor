@@ -14,7 +14,7 @@ import (
 func main() {
 	var timeout time.Duration
 
-	flag.DurationVar(&timeout, "timeout", 101*time.Second, "Maxium time to wait for timeout")
+	flag.DurationVar(&timeout, "timeout", 5*time.Minute, "Maxium time to wait for  timeout")
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s URL\n\n", os.Args[0])
 		flag.PrintDefaults()
@@ -30,10 +30,16 @@ func main() {
 		log.Fatalf("Failed to parse url: %s", err)
 	}
 	log.Printf("Checking keepalive timeout for %s...", url.String())
-	interval, _, err := keepalive.MeasureTimeout(*url, timeout)
+	interval, timeout, err := keepalive.MeasureTimeout(*url, timeout)
 	if err != nil {
 		log.Fatalf("check failed after %s: %s", interval, err)
+		os.Exit(1)
 	}
-	log.Printf("Connection closed after %s", interval)
+	if timeout {
+		log.Printf("Timeout waiting for a timeout :) after %s", interval)
+		os.Exit(1)
+	}
+
+	log.Printf("Connection closed by the server after %s", interval)
 
 }
