@@ -30,12 +30,12 @@ func main() {
 		log.Fatalf("Failed to parse url: %s", err)
 	}
 	log.Printf("Checking keepalive timeout for %s...", url.String())
-	interval, timeout, err := keepalive.MeasureTimeout(*url, timeout)
+	interval, timedOut, err := keepalive.MeasureTimeout(*url, timeout)
 	if err != nil {
 		log.Fatalf("check failed after %s: %s", interval, err)
 		os.Exit(1)
 	}
-	if timeout {
+	if timedOut {
 		log.Printf("Timeout waiting for a timeout :) after %s", interval)
 		os.Exit(1)
 	}
