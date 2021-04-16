@@ -19,7 +19,7 @@ spec:
       labels:
         tier: k8s
         service: resources
-        severity: inf
+        severity: info
         meta: "Timeout for idle HTTP connections to low for ingress {{`{{ $labels.ingress_namespace }}/{{ $labels.ingress }}`}}"
         playbook: 'docs/support/playbook/kubernetes/idle_http_keep_alive_timeout.html'
       annotations:
