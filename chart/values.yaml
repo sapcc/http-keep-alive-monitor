@@ -9,6 +9,8 @@ alert:
   enabled: true
   timeout: 61
   prometheus: kubernetes
+  ignore_ingress_names: []
+  severity: warning
 
 replicaCount: 1
 

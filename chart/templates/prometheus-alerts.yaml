@@ -14,12 +14,12 @@ spec:
   - name: http-keep-alive.alerts
     rules:
     - alert: IdleHTTPKeepAliveTimeoutTooLow
-      expr: min by(ingress, ingress_namespace) (http_keepalive_idle_timeout_seconds) < {{ .Values.alert.timeout }} > 0
+      expr: min by(ingress, ingress_namespace) (http_keepalive_idle_timeout_seconds{ingress !~ "^{{ .Values.alert.ignore_ingress_names | join "|" }}$"}) < {{ .Values.alert.timeout }} > 0
       for: 30m
       labels:
         tier: k8s
         service: resources
-        severity: info
+        severity: {{ .Values.alert.severity }}
         meta: "Timeout for idle HTTP connections to low for ingress {{`{{ $labels.ingress_namespace }}/{{ $labels.ingress }}`}}"
         playbook: 'docs/support/playbook/kubernetes/idle_http_keep_alive_timeout.html'
       annotations:
