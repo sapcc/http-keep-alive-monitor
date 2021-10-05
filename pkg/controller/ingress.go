@@ -177,6 +177,11 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 		labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace}
 		for address, _ := range backends {
 			dur, _, err := keepalive.MeasureTimeout(url.URL{Scheme: "http", Host: address}, timeout)
+			select {
+			case <-ctx.Done():
+				return // monitor was canceled, no updates
+			default:
+			}
 			if err == nil {
 				httpKeepaliveIdleTimeout.With(labels).Set(dur.Seconds())
 			} else {
