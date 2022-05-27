@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/sapcc/http-keep-alive-monitor/pkg/controller"
-	netv1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1beta1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -55,8 +55,8 @@ func main() {
 	}
 
 	err = builder.
-		ControllerManagedBy(mgr).   // Create the ControllerManagedBy
-		For(&netv1beta1.Ingress{}). // Watch Ingress definitions
+		ControllerManagedBy(mgr). // Create the ControllerManagedBy
+		For(&netv1.Ingress{}).    // Watch Ingress definitions
 		Complete(&controller.IngressReconciler{
 			KeepAliveTimeout: idleTimeout,
 			DefaultClass:     !skipNoClass,

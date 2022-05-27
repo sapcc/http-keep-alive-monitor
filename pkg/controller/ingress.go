@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"sync"
@@ -10,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 	corev1 "k8s.io/api/core/v1"
-	netv1beta1 "k8s.io/api/networking/v1beta1"
+	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -65,7 +66,7 @@ type IngressReconciler struct {
 func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 
 	log := logf.FromContext(ctx)
-	ing := &netv1beta1.Ingress{}
+	ing := &netv1.Ingress{}
 	err := a.Get(ctx, req.NamespacedName, ing)
 	if client.IgnoreNotFound(err) != nil {
 		return reconcile.Result{}, err
@@ -141,17 +142,17 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 	return func(ctx context.Context) {
 		log := logf.FromContext(ctx)
 
-		ing := &netv1beta1.Ingress{}
+		ing := &netv1.Ingress{}
 		err := client.Get(ctx, key, ing)
 		if err != nil {
 			log.Info("Failed to probe", "err", err)
 			return
 		}
 		var backends = map[string]struct{}{}
-		if ing.Spec.Backend != nil {
-			address, err := resolveBackend(ctx, client, ing.Namespace, ing.Spec.Backend)
+		if ing.Spec.DefaultBackend != nil {
+			address, err := resolveBackend(ctx, client, ing.Namespace, ing.Spec.DefaultBackend)
 			if err != nil {
-				log.Info("Failed to resolve default backend", "backend", ing.Spec.Backend.ServiceName, "err", err)
+				log.Info("Failed to resolve default backend", "backend", ing.Spec.DefaultBackend.Service.Name, "err", err)
 			} else {
 
 				backends[address] = struct{}{}
@@ -163,7 +164,7 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 					for _, r := range rule.HTTP.Paths {
 						address, err := resolveBackend(ctx, client, ing.Namespace, &r.Backend)
 						if err != nil {
-							log.Info("Failed to resolve backend", "err", err, "backend", r.Backend.ServiceName)
+							log.Info("Failed to resolve backend", "err", err)
 							continue
 						}
 						backends[address] = struct{}{}
@@ -197,9 +198,12 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 	}
 }
 
-func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1beta1.IngressBackend) (string, error) {
+func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1.IngressBackend) (string, error) {
 	svc := &corev1.Service{}
-	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.ServiceName}, svc)
+	if backend.Service == nil {
+		return "", errors.New("ingress backend does not contain a service reference")
+	}
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.Service.Name}, svc)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get service: %w", err)
 	}
@@ -208,15 +212,15 @@ func resolveBackend(ctx context.Context, c client.Client, namespace string, back
 		host = fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace)
 	}
 
-	if backend.ServicePort.IntValue() > 0 {
-		return fmt.Sprintf("%s:%d", host, backend.ServicePort.IntValue()), nil
+	if backend.Service.Port.Number > 0 {
+		return fmt.Sprintf("%s:%d", host, backend.Service.Port.Number), nil
 	}
 
 	for _, port := range svc.Spec.Ports {
-		if port.Name == backend.ServicePort.String() {
+		if port.Name == backend.Service.Port.Name {
 			return fmt.Sprintf("%s:%d", host, port.Port), nil
 		}
 	}
-	return "", fmt.Errorf("Port %s not found on service", backend.ServicePort)
+	return "", fmt.Errorf("Port %s not found on service", backend.Service.Port.Name)
 
 }
