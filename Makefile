@@ -1,5 +1,5 @@
 IMAGE := keppel.eu-de-1.cloud.sap/ccloud/http-keep-alive-monitor
-VERSION:= 0.2.1
+VERSION:= 0.3.0
 
 
 build:
