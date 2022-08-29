@@ -56,6 +56,10 @@ type IngressReconciler struct {
 	mu       sync.Mutex
 }
 
+const (
+	NoKeepAliveMonitorAnnotation = "cloud.sap/no-http-keep-alive-monitor"
+)
+
 // Implement the business logic:
 // This function will be called when there is a change to a ReplicaSet or a Pod with an OwnerReference
 // to a ReplicaSet.
@@ -76,6 +80,12 @@ func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{}, nil
 	}
 	log.Info("Reconciling", "class", ing.Spec.IngressClassName)
+
+	if _, ok := ing.Annotations[NoKeepAliveMonitorAnnotation]; ok {
+		log.Info(fmt.Sprintf("Skipping resource with %s annotation", NoKeepAliveMonitorAnnotation))
+		a.delete(req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
 
 	ingressClass := ing.Annotations["kubernetes.io/ingress.class"]
 	if ing.Spec.IngressClassName != nil {
