@@ -28,7 +28,7 @@ var (
 			Name:      "idle_timeout_seconds",
 			Help:      "the idle timeout measured for http keepalive connectiosn",
 		},
-		[]string{"ingress", "ingress_namespace"},
+		[]string{"ingress", "ingress_namespace", "backend"},
 	)
 	httpKeepaliveErrorsCount = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -36,7 +36,7 @@ var (
 			Name:      "errors_total",
 			Help:      "errors that happend while measuring the timeout",
 		},
-		[]string{"ingress", "ingress_namespace"},
+		[]string{"ingress", "ingress_namespace", "backend"},
 	)
 )
 
@@ -158,64 +158,65 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 			log.Info("Failed to probe", "err", err)
 			return
 		}
-		var backends = map[string]struct{}{}
+		var backends = map[string]string{}
 		if ing.Spec.DefaultBackend != nil {
-			address, err := resolveBackend(ctx, client, ing.Namespace, ing.Spec.DefaultBackend)
+			address, svcNameAndPort, err := resolveBackend(ctx, client, ing.Namespace, ing.Spec.DefaultBackend)
 			if err != nil {
 				log.Info("Failed to resolve default backend", "backend", ing.Spec.DefaultBackend.Service.Name, "err", err)
 			} else {
 
-				backends[address] = struct{}{}
+				backends[address] = svcNameAndPort
 			}
 		}
 		for _, rule := range ing.Spec.Rules {
 			if rule.HTTP != nil {
 				if len(rule.HTTP.Paths) > 0 {
 					for _, r := range rule.HTTP.Paths {
-						address, err := resolveBackend(ctx, client, ing.Namespace, &r.Backend)
+						address, svcNameAndPort, err := resolveBackend(ctx, client, ing.Namespace, &r.Backend)
 						if err != nil {
 							log.Info("Failed to resolve backend", "err", err)
 							continue
 						}
-						backends[address] = struct{}{}
+						backends[address] = svcNameAndPort
 					}
 				}
 			}
 		}
-		if len(backends) > 1 {
-			log.Info("Warning. More then one backend found. Picking one randomly")
-		}
-		labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace}
-		for address, _ := range backends {
-			dur, _, err := keepalive.MeasureTimeout(url.URL{Scheme: "http", Host: address}, timeout)
-			select {
-			case <-ctx.Done():
-				return // monitor was canceled, no updates
-			default:
-			}
-			if err == nil {
-				httpKeepaliveIdleTimeout.With(labels).Set(dur.Seconds())
-			} else {
-				log.Info("Probing keepalive timeout failed", "err", err)
-				httpKeepaliveErrorsCount.With(labels).Add(1)
-				httpKeepaliveIdleTimeout.With(labels).Set(-1)
-			}
 
-			log.Info("Probing", "address", address)
-			return
+		var wg sync.WaitGroup
+		for address, svcAndPort := range backends {
+			wg.Add(1)
+			go func() {
+				labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace, "backend": svcAndPort}
+				defer wg.Done()
+				dur, _, err := keepalive.MeasureTimeout(url.URL{Scheme: "http", Host: address}, timeout)
+				select {
+				case <-ctx.Done():
+					return // monitor was canceled, no updates
+				default:
+				}
+				if err == nil {
+					httpKeepaliveIdleTimeout.With(labels).Set(dur.Seconds())
+				} else {
+					log.Info("Probing keepalive timeout failed", "err", err)
+					httpKeepaliveErrorsCount.With(labels).Add(1)
+					httpKeepaliveIdleTimeout.With(labels).Set(-1)
+				}
+			}()
 		}
+		wg.Wait()
 
 	}
 }
 
-func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1.IngressBackend) (string, error) {
+func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1.IngressBackend) (string, string, error) {
 	svc := &corev1.Service{}
 	if backend.Service == nil {
-		return "", errors.New("ingress backend does not contain a service reference")
+		return "", "", errors.New("ingress backend does not contain a service reference")
 	}
 	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.Service.Name}, svc)
 	if err != nil {
-		return "", fmt.Errorf("Failed to get service: %w", err)
+		return "", "", fmt.Errorf("Failed to get service: %w", err)
 	}
 	host := svc.Spec.ClusterIP
 	if host == corev1.ClusterIPNone {
@@ -223,14 +224,14 @@ func resolveBackend(ctx context.Context, c client.Client, namespace string, back
 	}
 
 	if backend.Service.Port.Number > 0 {
-		return fmt.Sprintf("%s:%d", host, backend.Service.Port.Number), nil
+		return fmt.Sprintf("%s:%d", host, backend.Service.Port.Number), fmt.Sprintf("%s:%d", svc.Name, backend.Service.Port.Number), nil
 	}
 
 	for _, port := range svc.Spec.Ports {
 		if port.Name == backend.Service.Port.Name {
-			return fmt.Sprintf("%s:%d", host, port.Port), nil
+			return fmt.Sprintf("%s:%d", host, port.Port), fmt.Sprintf("%s:%d", svc.Name, port.Port), nil
 		}
 	}
-	return "", fmt.Errorf("Port %s not found on service", backend.Service.Port.Name)
+	return "", "", fmt.Errorf("Port %s not found on service", backend.Service.Port.Name)
 
 }
