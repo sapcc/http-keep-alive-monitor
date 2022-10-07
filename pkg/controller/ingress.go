@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -128,9 +129,9 @@ func (a *IngressReconciler) InjectClient(c client.Client) error {
 func (a *IngressReconciler) delete(key types.NamespacedName) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace}
-	httpKeepaliveIdleTimeout.Delete(labels)
-	httpKeepaliveErrorsCount.Delete(labels)
+
+	defer deleteMetrics(httpKeepaliveIdleTimeout, key)
+	defer deleteMetrics(httpKeepaliveErrorsCount, key)
 	if a.monitors == nil {
 		return
 	}
@@ -141,10 +142,42 @@ func (a *IngressReconciler) delete(key types.NamespacedName) {
 	}
 }
 
-func deleteMetrics(key types.NamespacedName) {
-	labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace}
-	httpKeepaliveIdleTimeout.Delete(labels)
-	httpKeepaliveErrorsCount.Delete(labels)
+type PromVec interface {
+	Collect(chan<- prometheus.Metric)
+	Delete(prometheus.Labels) bool
+}
+
+func deleteMetrics(metricVec PromVec, key types.NamespacedName) {
+
+	ch := make(chan prometheus.Metric)
+	endCh := make(chan struct{})
+	go func() {
+		metricVec.Collect(ch)
+		close(endCh)
+	}()
+	m := new(dto.Metric)
+
+	for {
+		select {
+		case metric := <-ch:
+			if err := metric.Write(m); err != nil {
+				continue
+			}
+			labels := prometheus.Labels{}
+			for _, p := range m.GetLabel() {
+				labels[p.GetName()] = p.GetValue()
+			}
+
+			if labels["ingress"] == key.Name && labels["ingress_namespace"] == key.Namespace {
+				// We can't delete metrics while Collecting them without ending up in a dead-lock,
+				// so we delete them after Collect has returned
+				defer metricVec.Delete(labels)
+			}
+
+		case <-endCh:
+			return
+		}
+	}
 
 }
 
