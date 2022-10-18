@@ -11,6 +11,7 @@ alert:
   prometheus: kubernetes
   ignore_ingress_names: []
   severity: warning
+  default_support_group: containers
 
 replicaCount: 1
 
