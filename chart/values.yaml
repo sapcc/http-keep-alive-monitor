@@ -19,7 +19,7 @@ image:
   repository: keppel.eu-de-1.cloud.sap/ccloud/http-keep-alive-monitor
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "0.4.2"
+  tag: "0.4.5"
 
 imagePullSecrets: []
 nameOverride: ""
