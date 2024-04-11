@@ -61,9 +61,10 @@ func main() {
 		ControllerManagedBy(mgr). // Create the ControllerManagedBy
 		For(&netv1.Ingress{}).    // Watch Ingress definitions
 		Complete(&controller.IngressReconciler{
-			KeepAliveTimeout: idleTimeout,
+			Client:           mgr.GetClient(),
 			DefaultClass:     !skipNoClass,
 			IngressClass:     ingressClass,
+			KeepAliveTimeout: idleTimeout,
 		})
 	if err != nil {
 		log.Error(err, "could not create controller")
