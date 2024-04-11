@@ -1,14 +1,11 @@
-# syntax=docker/dockerfile:experimental
-FROM golang:alpine
+FROM golang:1.22.2-alpine3.19 as build
 
 WORKDIR /build
 ADD . .
 
-RUN --mount=type=cache,target=/go/pkg/mod \
-	  --mount=type=cache,target=/root/.cache/go-build \
-      go build -o /exporter ./cmd/exporter
+RUN go build -o /exporter ./cmd/exporter
 
-FROM alpine
+FROM alpine:3.19
 LABEL source_repository=https://github.com/sapcc/http-keep-alive-monitor
-COPY --from=0 /exporter /exporter
+COPY --from=build /exporter /exporter
 ENTRYPOINT ["/exporter"]
