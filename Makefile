@@ -1,9 +1,9 @@
 IMAGE := keppel.eu-de-1.cloud.sap/ccloud/http-keep-alive-monitor
-VERSION:= 0.4.5
+VERSION:= 0.4.6
 
 
 build:
-	docker build -t $(IMAGE):$(VERSION) .
+	podman build -t $(IMAGE):$(VERSION) .
 
 push: build
-	docker push $(IMAGE):$(VERSION)
+	podman push $(IMAGE):$(VERSION)
