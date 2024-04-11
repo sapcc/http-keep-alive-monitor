@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 func main() {
@@ -47,7 +48,9 @@ func main() {
 	}
 
 	mgr, err := manager.New(c, manager.Options{
-		MetricsBindAddress: metricsAddr,
+		Metrics: server.Options{
+			BindAddress: metricsAddr,
+		},
 	})
 	if err != nil {
 		log.Error(err, "could not create manager")
