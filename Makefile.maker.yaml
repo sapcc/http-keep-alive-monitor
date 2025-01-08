@@ -1,0 +1,34 @@
+# Configuration file for <https://github.com/sapcc/go-makefile-maker>
+
+metadata:
+  url: https://github.com/sapcc/http-keep-alive-monitor
+
+binaries:
+  - name:        exporter
+    fromPackage: ./cmd/exporter
+    installTo:   bin/
+  - name:        keepalive-check
+    fromPackage: ./cmd/keepalive-check
+    installTo:   bin/
+
+controllerGen:
+  enabled: false
+
+dockerfile:
+  enabled: true
+
+golang:
+  setGoModVersion: true
+
+golangciLint:
+  createConfig: true
+
+githubWorkflow:
+  ci:
+    enabled: true
+
+renovate:
+  enabled: true
+  assignees:
+    - SuperSandro2000
+    - Nuckal777
