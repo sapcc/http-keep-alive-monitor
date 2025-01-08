@@ -246,7 +246,7 @@ func resolveBackend(ctx context.Context, c client.Client, namespace string, back
 	}
 	err = c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.Service.Name}, svc)
 	if err != nil {
-		return "", "", fmt.Errorf("Failed to get service: %w", err)
+		return "", "", fmt.Errorf("failed to get service: %w", err)
 	}
 	host := svc.Spec.ClusterIP
 	if host == corev1.ClusterIPNone {
@@ -262,5 +262,5 @@ func resolveBackend(ctx context.Context, c client.Client, namespace string, back
 			return fmt.Sprintf("%s:%d", host, port.Port), fmt.Sprintf("%s:%d", svc.Name, port.Port), nil
 		}
 	}
-	return "", "", fmt.Errorf("Port %s not found on service", backend.Service.Port.Name)
+	return "", "", fmt.Errorf("port %s not found on service", backend.Service.Port.Name)
 }
