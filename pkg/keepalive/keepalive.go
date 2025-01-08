@@ -2,17 +2,21 @@ package keepalive
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/sapcc/go-bits/errext"
 )
 
-func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, bool, error) {
-	req, err := http.NewRequest(http.MethodGet, endpoint.String(), http.NoBody)
+func MeasureTimeout(ctx context.Context, endpoint url.URL, timeout time.Duration) (time.Duration, bool, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), http.NoBody)
 	req.Header["User-Agent"] = []string{"http-keepalive-monitor/1.0"}
 	if err != nil {
 		return 0, false, fmt.Errorf("Failed to create request: %w", err)
@@ -21,7 +25,7 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 	var conn net.Conn
 	if endpoint.Scheme == "https" {
 		conn, err = tls.Dial("tcp", endpoint.Host, &tls.Config{
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: true, //nolint:gosec // we want to test ingresses with wrong certs, too
 		})
 	} else {
 		conn, err = net.Dial("tcp", endpoint.Host)
@@ -42,7 +46,10 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 		return 0, false, nil
 	}
 	if response.Body != nil {
-		io.Copy(io.Discard, response.Body)
+		_, err = io.Copy(io.Discard, response.Body)
+		if err != nil {
+			return 0, false, fmt.Errorf("Copy failed: %w", err)
+		}
 		response.Body.Close()
 	}
 
@@ -53,10 +60,10 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 	dummy := make([]byte, 1)
 	start := time.Now()
 	_, err = conn.Read(dummy)
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return time.Since(start), false, nil
 	}
-	if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+	if nerr, ok := errext.As[net.Error](err); ok && nerr.Timeout() {
 		return time.Since(start), true, nil
 	}
 

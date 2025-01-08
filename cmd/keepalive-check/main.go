@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sapcc/go-api-declarations/bininfo"
+	"github.com/sapcc/go-bits/httpext"
 
 	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 )
@@ -32,12 +34,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx := httpext.ContextWithSIGINT(context.Background(), 100*time.Millisecond)
+
 	url, err := url.Parse(flag.Arg(0))
 	if err != nil {
 		log.Fatalf("Failed to parse url: %s", err)
 	}
 	log.Printf("Checking keepalive timeout for %s...", url.String())
-	interval, timedOut, err := keepalive.MeasureTimeout(*url, timeout)
+	interval, timedOut, err := keepalive.MeasureTimeout(ctx, *url, timeout)
 	if err != nil {
 		log.Fatalf("check failed after %s: %s", interval, err)
 		os.Exit(1)

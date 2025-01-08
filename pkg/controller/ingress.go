@@ -10,6 +10,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
+	"github.com/sapcc/go-bits/must"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,8 +44,8 @@ var (
 )
 
 func init() {
-	metrics.Registry.Register(httpKeepaliveIdleTimeout)
-	metrics.Registry.Register(httpKeepaliveErrorsCount)
+	must.Succeed(metrics.Registry.Register(httpKeepaliveIdleTimeout))
+	must.Succeed(metrics.Registry.Register(httpKeepaliveErrorsCount))
 }
 
 // ReplicaSetReconciler is a simple ControllerManagedBy example implementation.
@@ -219,7 +220,7 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 			go func() {
 				labels := prometheus.Labels{"ingress": key.Name, "ingress_namespace": key.Namespace, "backend": svcAndPort}
 				defer wg.Done()
-				dur, _, err := keepalive.MeasureTimeout(url.URL{Scheme: "http", Host: address}, timeout)
+				dur, _, err := keepalive.MeasureTimeout(ctx, url.URL{Scheme: "http", Host: address}, timeout)
 				select {
 				case <-ctx.Done():
 					return // monitor was canceled, no updates
@@ -238,12 +239,12 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 	}
 }
 
-func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1.IngressBackend) (string, string, error) {
+func resolveBackend(ctx context.Context, c client.Client, namespace string, backend *netv1.IngressBackend) (address, svcNameAndPort string, err error) {
 	svc := &corev1.Service{}
 	if backend.Service == nil {
 		return "", "", errors.New("ingress backend does not contain a service reference")
 	}
-	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.Service.Name}, svc)
+	err = c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: backend.Service.Name}, svc)
 	if err != nil {
 		return "", "", fmt.Errorf("Failed to get service: %w", err)
 	}
