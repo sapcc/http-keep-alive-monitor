@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/sapcc/http-keep-alive-monitor/pkg/controller"
+
+	"github.com/sapcc/go-api-declarations/bininfo"
 	netv1 "k8s.io/api/networking/v1"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -26,6 +29,11 @@ func main() {
 	flag.DurationVar(&idleTimeout, "idle-timeout", 61*time.Second, "Global timeout used when probing services")
 	flag.BoolVar(&skipNoClass, "skip-no-class", false, "Ignore ingress resources without an explicit ingress class")
 	flag.StringVar(&ingressClass, "ingress-class", "", "Restrict to ingress resources of given ingress class")
+	flag.BoolFunc("version", "Show version information", func(_ string) error {
+		fmt.Print(bininfo.Version())
+		os.Exit(0)
+		return nil
+	})
 
 	flag.Parse()
 

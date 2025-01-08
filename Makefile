@@ -33,13 +33,19 @@ GO_LDFLAGS =
 GO_TESTENV =
 GO_BUILDENV =
 
+# These definitions are overridable, e.g. to provide fixed version/commit values when
+# no .git directory is present or to provide a fixed build date for reproducibility.
+BININFO_VERSION     ?= $(shell git describe --tags --always --abbrev=7)
+BININFO_COMMIT_HASH ?= $(shell git rev-parse --verify HEAD)
+BININFO_BUILD_DATE  ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 build-all: build/exporter build/keepalive-check
 
 build/exporter: FORCE
-	@env $(GO_BUILDENV) go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/exporter ./cmd/exporter
+	@env $(GO_BUILDENV) go build $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=exporter -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -o build/exporter ./cmd/exporter
 
 build/keepalive-check: FORCE
-	@env $(GO_BUILDENV) go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/keepalive-check ./cmd/keepalive-check
+	@env $(GO_BUILDENV) go build $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=keepalive-check -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -o build/keepalive-check ./cmd/keepalive-check
 
 DESTDIR =
 ifeq ($(shell uname -s),Darwin)
@@ -75,7 +81,7 @@ run-golangci-lint: FORCE install-golangci-lint
 
 build/cover.out: FORCE | build
 	@printf "\e[1;36m>> Running tests\e[0m\n"
-	@env $(GO_TESTENV) go test -shuffle=on -p 1 -coverprofile=$@ $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -covermode=count -coverpkg=$(subst $(space),$(comma),$(GO_COVERPKGS)) $(GO_TESTPKGS)
+	@env $(GO_TESTENV) go test -shuffle=on -p 1 -coverprofile=$@ $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=http-keep-alive-monitor -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -covermode=count -coverpkg=$(subst $(space),$(comma),$(GO_COVERPKGS)) $(GO_TESTPKGS)
 
 build/cover.html: build/cover.out
 	@printf "\e[1;36m>> go tool cover > build/cover.html\e[0m\n"
@@ -110,6 +116,9 @@ clean: FORCE
 	git clean -dxf build
 
 vars: FORCE
+	@printf "BININFO_BUILD_DATE=$(BININFO_BUILD_DATE)\n"
+	@printf "BININFO_COMMIT_HASH=$(BININFO_COMMIT_HASH)\n"
+	@printf "BININFO_VERSION=$(BININFO_VERSION)\n"
 	@printf "DESTDIR=$(DESTDIR)\n"
 	@printf "GO_BUILDENV=$(GO_BUILDENV)\n"
 	@printf "GO_BUILDFLAGS=$(GO_BUILDFLAGS)\n"

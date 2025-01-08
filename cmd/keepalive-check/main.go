@@ -8,13 +8,20 @@ import (
 	"os"
 	"time"
 
+	"github.com/sapcc/go-api-declarations/bininfo"
+
 	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 )
 
 func main() {
 	var timeout time.Duration
 
-	flag.DurationVar(&timeout, "timeout", 5*time.Minute, "Maxium time to wait for  timeout")
+	flag.DurationVar(&timeout, "timeout", 5*time.Minute, "Maximum time to wait for timeout")
+	flag.BoolFunc("version", "Show version information", func(_ string) error {
+		fmt.Print(bininfo.Version())
+		os.Exit(0)
+		return nil
+	})
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s URL\n\n", os.Args[0])
 		flag.PrintDefaults()
