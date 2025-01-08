@@ -12,8 +12,7 @@ import (
 )
 
 func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, bool, error) {
-
-	req, err := http.NewRequest("GET", endpoint.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, endpoint.String(), http.NoBody)
 	req.Header["User-Agent"] = []string{"http-keepalive-monitor/1.0"}
 	if err != nil {
 		return 0, false, fmt.Errorf("Failed to create request: %w", err)
@@ -31,9 +30,9 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 		return 0, false, fmt.Errorf("Connection failed: %w", err)
 	}
 	defer conn.Close()
-	//multi := io.MultiWriter(os.Stderr, conn)
+	// multi := io.MultiWriter(os.Stderr, conn)
 	if err := req.Write(conn); err != nil {
-		return 0, false, fmt.Errorf("Sending intial request failed: %w", err)
+		return 0, false, fmt.Errorf("Sending initial request failed: %w", err)
 	}
 	response, err := http.ReadResponse(bufio.NewReader(conn), req)
 	if err != nil {
@@ -55,11 +54,11 @@ func MeasureTimeout(endpoint url.URL, timeout time.Duration) (time.Duration, boo
 	start := time.Now()
 	_, err = conn.Read(dummy)
 	if err == io.EOF {
-		return time.Now().Sub(start), false, nil
+		return time.Since(start), false, nil
 	}
 	if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-		return time.Now().Sub(start), true, nil
+		return time.Since(start), true, nil
 	}
 
-	return time.Now().Sub(start), false, err
+	return time.Since(start), false, err
 }

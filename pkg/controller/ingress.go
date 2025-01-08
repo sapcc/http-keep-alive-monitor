@@ -10,7 +10,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +19,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/sapcc/http-keep-alive-monitor/pkg/keepalive"
 )
 
 var (
@@ -35,7 +36,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: "http_keepalive",
 			Name:      "errors_total",
-			Help:      "errors that happend while measuring the timeout",
+			Help:      "errors that happened while measuring the timeout",
 		},
 		[]string{"ingress", "ingress_namespace", "backend"},
 	)
@@ -69,7 +70,6 @@ const (
 // * Read the Pods
 // * Set a Label on the ReplicaSet with the Pod count
 func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-
 	log := logf.FromContext(ctx)
 	ing := &netv1.Ingress{}
 	err := a.Get(ctx, req.NamespacedName, ing)
@@ -93,13 +93,13 @@ func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		ingressClass = *ing.Spec.IngressClassName
 	}
 
-	//Ignore ingress resources without class
+	// Ignore ingress resources without class
 	if !a.DefaultClass && ingressClass == "" {
 		log.Info("Skipping resource with no class")
 		a.delete(req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
-	//Ignore ingress of non matching ingress class
+	// Ignore ingress of non matching ingress class
 	if a.IngressClass != "" && ingressClass != "" && ingressClass != a.IngressClass {
 		log.Info("Skipping resource with non-matching class", "want", a.IngressClass, "have", ingressClass)
 		a.delete(req.NamespacedName)
@@ -111,7 +111,7 @@ func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if a.monitors == nil {
 		a.monitors = make(map[types.NamespacedName]func())
 	}
-	//create missing monitor
+	// create missing monitor
 	if _, exists := a.monitors[req.NamespacedName]; !exists {
 		c, cancelFn := context.WithCancel(ctx)
 		go wait.JitterUntilWithContext(c, monitor(req.NamespacedName, a.Client, a.KeepAliveTimeout), a.KeepAliveTimeout, 0.0, false)
@@ -148,7 +148,6 @@ type PromVec interface {
 }
 
 func deleteMetrics(metricVec PromVec, key types.NamespacedName) {
-
 	ch := make(chan prometheus.Metric)
 	endCh := make(chan struct{})
 	go func() {
@@ -178,7 +177,6 @@ func deleteMetrics(metricVec PromVec, key types.NamespacedName) {
 			return
 		}
 	}
-
 }
 
 func monitor(key types.NamespacedName, client client.Client, timeout time.Duration) func(context.Context) {
@@ -197,7 +195,6 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 			if err != nil {
 				log.Info("Failed to resolve default backend", "backend", ing.Spec.DefaultBackend.Service.Name, "err", err)
 			} else {
-
 				backends[address] = svcNameAndPort
 			}
 		}
@@ -238,7 +235,6 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 			}()
 		}
 		wg.Wait()
-
 	}
 }
 
@@ -266,5 +262,4 @@ func resolveBackend(ctx context.Context, c client.Client, namespace string, back
 		}
 	}
 	return "", "", fmt.Errorf("Port %s not found on service", backend.Service.Port.Name)
-
 }

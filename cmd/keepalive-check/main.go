@@ -48,5 +48,4 @@ func main() {
 	}
 
 	log.Printf("Connection closed by the server after %s", interval)
-
 }
