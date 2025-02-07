@@ -26,6 +26,14 @@ golangciLint:
 githubWorkflow:
   ci:
     enabled: true
+  pushContainerToGhcr:
+    enabled: true
+    platforms: "linux/amd64,linux/arm64"
+    tagStrategy:
+      - edge
+      - latest
+      - semver
+      - sha
 
 renovate:
   enabled: true

@@ -32,7 +32,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: "http_keepalive",
 			Name:      "idle_timeout_seconds",
-			Help:      "the idle timeout measured for http keepalive connectiosn",
+			Help:      "the idle timeout measured for http keepalive connection",
 		},
 		[]string{"ingress", "ingress_namespace", "backend"},
 	)
