@@ -39,12 +39,12 @@ func main() {
 
 	ctx := httpext.ContextWithSIGINT(context.Background(), 100*time.Millisecond)
 
-	url, err := url.Parse(flag.Arg(0))
+	parsedURL, err := url.Parse(flag.Arg(0))
 	if err != nil {
 		log.Fatalf("Failed to parse url: %s", err)
 	}
-	log.Printf("Checking keepalive timeout for %s...", url.String())
-	interval, timedOut, err := keepalive.MeasureTimeout(ctx, *url, timeout)
+	log.Printf("Checking keepalive timeout for %s...", parsedURL.String())
+	interval, timedOut, err := keepalive.MeasureTimeout(ctx, *parsedURL, timeout)
 	if err != nil {
 		log.Fatalf("check failed after %s: %s", interval, err)
 		os.Exit(1)

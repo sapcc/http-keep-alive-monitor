@@ -183,19 +183,19 @@ func deleteMetrics(metricVec PromVec, key types.NamespacedName) {
 	}
 }
 
-func monitor(key types.NamespacedName, client client.Client, timeout time.Duration) func(context.Context) {
+func monitor(key types.NamespacedName, k8sClient client.Client, timeout time.Duration) func(context.Context) {
 	return func(ctx context.Context) {
 		log := logf.FromContext(ctx)
 
 		ing := &netv1.Ingress{}
-		err := client.Get(ctx, key, ing)
+		err := k8sClient.Get(ctx, key, ing)
 		if err != nil {
 			log.Info("Failed to probe", "err", err)
 			return
 		}
 		var backends = map[string]string{}
 		if ing.Spec.DefaultBackend != nil {
-			address, svcNameAndPort, err := resolveBackend(ctx, client, ing.Namespace, ing.Spec.DefaultBackend)
+			address, svcNameAndPort, err := resolveBackend(ctx, k8sClient, ing.Namespace, ing.Spec.DefaultBackend)
 			if err != nil {
 				log.Info("Failed to resolve default backend", "backend", ing.Spec.DefaultBackend.Service.Name, "err", err)
 			} else {
@@ -206,7 +206,7 @@ func monitor(key types.NamespacedName, client client.Client, timeout time.Durati
 			if rule.HTTP != nil {
 				if len(rule.HTTP.Paths) > 0 {
 					for _, r := range rule.HTTP.Paths {
-						address, svcNameAndPort, err := resolveBackend(ctx, client, ing.Namespace, &r.Backend)
+						address, svcNameAndPort, err := resolveBackend(ctx, k8sClient, ing.Namespace, &r.Backend)
 						if err != nil {
 							log.Info("Failed to resolve backend", "err", err)
 							continue
