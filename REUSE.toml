@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: SAP SE
 # SPDX-License-Identifier: Apache-2.0
 version = 1
+SPDX-PackageName = "http-keep-alive-monitor"
+SPDX-PackageDownloadLocation = "https://github.com/sapcc/http-keep-alive-monitor"
 
 [[annotations]]
 path = [
