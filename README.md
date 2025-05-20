@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 http-keep-alive-monitor
 ===========================
 This repository contains a kubernetes aware monitor that measures http keep-alive idle timeout settings of ingress backend services.
