@@ -3,10 +3,10 @@ module github.com/sapcc/http-keep-alive-monitor
 go 1.24.0
 
 require (
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/prometheus/client_model v0.6.2
-	github.com/sapcc/go-api-declarations v1.17.1
-	github.com/sapcc/go-bits v0.0.0-20250717162732-01df4e41958b
+	github.com/sapcc/go-api-declarations v1.17.2
+	github.com/sapcc/go-bits v0.0.0-20250807112417-2f28a08d3ddd
 	k8s.io/api v0.33.0
 	k8s.io/apimachinery v0.33.0
 	k8s.io/client-go v0.33.0
@@ -39,7 +39,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/common v0.65.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
