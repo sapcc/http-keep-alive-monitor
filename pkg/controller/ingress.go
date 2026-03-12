@@ -117,7 +117,7 @@ func (a *IngressReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 	// create missing monitor
 	if _, exists := a.monitors[req.NamespacedName]; !exists {
-		c, cancelFn := context.WithCancel(ctx)
+		c, cancelFn := context.WithCancel(ctx) //nolint:gosec // G118: cancelFn is indeed eventually called
 		go wait.JitterUntilWithContext(c, monitor(req.NamespacedName, a.Client, a.KeepAliveTimeout), a.KeepAliveTimeout, 0.0, false)
 		a.monitors[req.NamespacedName] = cancelFn
 	}
