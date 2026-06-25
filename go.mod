@@ -6,7 +6,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/sapcc/go-api-declarations v1.24.0
-	github.com/sapcc/go-bits v0.0.0-20260618170412-b440edfb4e25
+	github.com/sapcc/go-bits v0.0.0-20260623114633-b9734b46a368
 	k8s.io/api v0.36.0
 	k8s.io/apimachinery v0.36.0
 	k8s.io/client-go v0.36.0
