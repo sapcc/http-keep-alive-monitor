@@ -3,10 +3,10 @@ module github.com/sapcc/http-keep-alive-monitor
 go 1.26.0
 
 require (
-	github.com/prometheus/client_golang v1.24.0
+	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/client_model v0.6.2
 	github.com/sapcc/go-api-declarations v1.24.0
-	github.com/sapcc/go-bits v0.0.0-20260723170232-89c8670b5841
+	github.com/sapcc/go-bits v0.0.0-20260806072527-32381c36b909
 	k8s.io/api v0.36.0
 	k8s.io/apimachinery v0.36.0
 	k8s.io/client-go v0.36.0
